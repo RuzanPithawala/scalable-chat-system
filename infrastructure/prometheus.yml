@@ -1,0 +1,44 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # User Service instances
+  - job_name: 'user-service'
+    static_configs:
+      - targets: 
+        - 'user-service-1:3001'
+        - 'user-service-2:3001'
+    metrics_path: '/metrics'
+
+  # Chat Service instances
+  - job_name: 'chat-service'
+    static_configs:
+      - targets:
+        - 'chat-service-1:3002'
+        - 'chat-service-2:3002'
+    metrics_path: '/metrics'
+
+  # NGINX
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:80']
+
+  # PostgreSQL
+  - job_name: 'postgres-user'
+    static_configs:
+      - targets: ['postgres-user:5432']
+
+  - job_name: 'postgres-chat'
+    static_configs:
+      - targets: ['postgres-chat:5432']
+
+  # Redis
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-master:6379']

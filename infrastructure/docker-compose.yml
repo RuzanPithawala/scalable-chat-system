@@ -1,0 +1,270 @@
+version: '3.8'
+
+services:
+  # PostgreSQL for User Service
+  postgres-user:
+    image: postgres:15-alpine
+    container_name: postgres-user
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: userdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-user-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL for Chat Service
+  postgres-chat:
+    image: postgres:15-alpine
+    container_name: postgres-chat
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: chatdb
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-chat-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Master
+  redis-master:
+    image: redis:7-alpine
+    container_name: redis-master
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-master-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Replica 1
+  redis-replica-1:
+    image: redis:7-alpine
+    container_name: redis-replica-1
+    command: redis-server --replicaof redis-master 6379 --appendonly yes
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-replica-1-data:/data
+    depends_on:
+      - redis-master
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Sentinel 1
+  redis-sentinel-1:
+    image: redis:7-alpine
+    container_name: redis-sentinel-1
+    networks:
+      - default
+    command:
+      - sh
+      - -c
+      - |
+        # Wait for redis-master to be available
+        until nc -z redis-master 6379; do
+          echo "Waiting for redis-master..."
+          sleep 2
+        done
+        
+        # Create sentinel config
+        cat > /tmp/sentinel.conf <<EOF
+        sentinel monitor mymaster redis-master 6379 2
+        sentinel down-after-milliseconds mymaster 5000
+        sentinel parallel-syncs mymaster 1
+        sentinel failover-timeout mymaster 10000
+        sentinel resolve-hostnames yes
+        sentinel announce-hostnames yes
+        EOF
+        
+        redis-sentinel /tmp/sentinel.conf
+    ports:
+      - "26379:26379"
+    depends_on:
+      redis-master:
+        condition: service_healthy
+
+  # NGINX Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-lb
+    ports:
+      - "80:80"
+      - "3001:3001"
+      - "3002:3002"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - user-service-1
+      - user-service-2
+      - chat-service-1
+      - chat-service-2
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # User Service Instance 1
+  user-service-1:
+    build:
+      context: ../user-service
+      dockerfile: ../infrastructure/Dockerfile.user-service
+    container_name: user-service-1
+    environment:
+      - PORT=3001
+      - DB_HOST=postgres-user
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=userdb
+      - JWT_SECRET=your-secret-key-change-in-production
+    depends_on:
+      postgres-user:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/users"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # User Service Instance 2
+  user-service-2:
+    build:
+      context: ../user-service
+      dockerfile: ../infrastructure/Dockerfile.user-service
+    container_name: user-service-2
+    environment:
+      - PORT=3001
+      - DB_HOST=postgres-user
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=userdb
+      - JWT_SECRET=your-secret-key-change-in-production
+    depends_on:
+      postgres-user:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/users"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Chat Service Instance 1
+  chat-service-1:
+    build:
+      context: ../chat-service
+      dockerfile: ../infrastructure/Dockerfile.chat-service
+    container_name: chat-service-1
+    environment:
+      - PORT=3002
+      - DB_HOST=postgres-chat
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=chatdb
+      - REDIS_HOST=redis-master
+      - REDIS_PORT=6379
+      - JWT_SECRET=your-secret-key-change-in-production
+    depends_on:
+      postgres-chat:
+        condition: service_healthy
+      redis-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3002/messages?chatId=general"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Chat Service Instance 2
+  chat-service-2:
+    build:
+      context: ../chat-service
+      dockerfile: ../infrastructure/Dockerfile.chat-service
+    container_name: chat-service-2
+    environment:
+      - PORT=3002
+      - DB_HOST=postgres-chat
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=chatdb
+      - REDIS_HOST=redis-master
+      - REDIS_PORT=6379
+      - JWT_SECRET=your-secret-key-change-in-production
+    depends_on:
+      postgres-chat:
+        condition: service_healthy
+      redis-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3002/messages?chatId=general"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Frontend
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../infrastructure/Dockerfile.frontend
+    container_name: frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - nginx
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3003:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres-user-data:
+  postgres-chat-data:
+  redis-master-data:
+  redis-replica-1-data:
+  prometheus-data:
+  grafana-data:
