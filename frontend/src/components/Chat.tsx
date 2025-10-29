@@ -27,11 +27,9 @@ export default function Chat({ user, onLogout }: ChatProps) {
 
   const socket = useSocket();
 
-  // Helper function to sort messages by timestamp
+  // Helper function to sort messages by sequence number
   const sortMessages = (msgs: Message[]): Message[] => {
-    return [...msgs].sort((a, b) => 
-      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
+    return [...msgs].sort((a, b) => a.sequence - b.sequence);
   };
 
   // Scroll to bottom when new messages arrive
@@ -142,7 +140,7 @@ export default function Chat({ user, onLogout }: ChatProps) {
 
     if (!messageInput.trim()) return;
 
-    socket.sendMessage(currentRoom, user.id, user.username, messageInput);
+    socket.sendMessage(currentRoom, user.id, user.username, user.displayName, messageInput);
     setMessageInput('');
   };
 
@@ -282,7 +280,7 @@ export default function Chat({ user, onLogout }: ChatProps) {
               className={`message ${message.userId === user.id ? 'own' : ''}`}
             >
               <div className="message-header">
-                <span className="message-username">{message.username}</span>
+                <span className="message-username">{message.displayName}</span>
                 <span className="message-time">
                   {formatTime(message.createdAt)}
                 </span>

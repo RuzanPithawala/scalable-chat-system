@@ -18,6 +18,9 @@ export class Message {
   @Column()
   username: string;
 
+  @Column()
+  displayName: string;
+
   @Column('text')
   content: string;
 

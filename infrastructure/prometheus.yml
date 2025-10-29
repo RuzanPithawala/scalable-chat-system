@@ -11,7 +11,7 @@ scrape_configs:
   # User Service instances
   - job_name: 'user-service'
     static_configs:
-      - targets: 
+      - targets:
         - 'user-service-1:3001'
         - 'user-service-2:3001'
     metrics_path: '/metrics'
@@ -24,21 +24,16 @@ scrape_configs:
         - 'chat-service-2:3002'
     metrics_path: '/metrics'
 
-  # NGINX
-  - job_name: 'nginx'
-    static_configs:
-      - targets: ['nginx:80']
-
-  # PostgreSQL
+  # PostgreSQL Exporters
   - job_name: 'postgres-user'
     static_configs:
-      - targets: ['postgres-user:5432']
+      - targets: ['postgres-user-exporter:9187']
 
   - job_name: 'postgres-chat'
     static_configs:
-      - targets: ['postgres-chat:5432']
+      - targets: ['postgres-chat-exporter:9187']
 
-  # Redis
+  # Redis Exporter
   - job_name: 'redis'
     static_configs:
-      - targets: ['redis-master:6379']
+      - targets: ['redis-exporter:9121']

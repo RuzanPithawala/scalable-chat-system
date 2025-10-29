@@ -434,30 +434,102 @@ Common fixes:
 
 ## 📈 Monitoring
 
+The system includes a fully automated monitoring stack with Prometheus and Grafana. All dashboards and datasources are **automatically provisioned** - no manual configuration needed!
+
 ### **Grafana Dashboard**
 
-Access Grafana at http://localhost:3003
+Access Grafana at **http://localhost:3003**
 
 **Default Credentials**:
 - Username: `admin`
 - Password: `admin`
 
-**Available Metrics**:
-- Message throughput
-- WebSocket connections
-- Response times
-- Error rates
-- Redis performance
-- Database queries
+**Pre-configured Dashboard**: http://localhost:3003/d/chat-system/chat-system-overview
+
+The dashboard is automatically loaded on first startup and includes **9 monitoring panels**:
+
+#### **Application Metrics**:
+1. **User Service Memory Usage** - Memory consumption of both user-service instances
+2. **Chat Service Memory Usage** - Memory consumption of both chat-service instances
+3. **Service CPU Usage** - CPU utilization across all service instances
+4. **Event Loop Lag** - Node.js event loop performance (milliseconds)
+
+#### **Database Metrics**:
+5. **PostgreSQL Active Connections** - Real-time database connections for userdb and chatdb
+6. **PostgreSQL Transactions** - Database transaction rates
+
+#### **Redis Metrics**:
+7. **Redis Commands/sec** - Redis throughput and operations
+8. **Redis Memory Usage** - Memory consumption by Redis
+9. **Redis Connected Clients** - Active Redis client connections
+
+#### **Service Health**:
+- Live status gauges showing health of all service instances
+- Real-time alerts for service failures
+
+**Features**:
+- ✅ **Auto-refresh**: All panels update every 5 seconds
+- ✅ **Historical data**: View metrics over time (5m, 15m, 1h, 6h, 24h, 7d)
+- ✅ **Zero configuration**: Dashboard and datasource are automatically provisioned
+- ✅ **Production-ready**: All metrics exposed via `/metrics` endpoints
 
 ### **Prometheus**
 
-Access Prometheus at http://localhost:9090
+Access Prometheus at **http://localhost:9090**
 
-Query examples:
-- `rate(http_requests_total[5m])` - Request rate
-- `websocket_connections` - Active WebSocket connections
-- `redis_commands_total` - Redis command count
+**Metrics Collection**:
+- Scrapes all services every 15 seconds
+- Stores time-series data for querying
+- Monitors 8 targets:
+  - user-service-1, user-service-2
+  - chat-service-1, chat-service-2
+  - postgres-user-exporter
+  - postgres-chat-exporter
+  - redis-exporter
+  - prometheus (self-monitoring)
+
+**Useful Queries**:
+```promql
+# Node.js Memory Usage
+process_resident_memory_bytes{job="chat-service"}
+
+# CPU Usage Rate
+rate(process_cpu_seconds_total{job=~"user-service|chat-service"}[5m])
+
+# Event Loop Lag
+nodejs_eventloop_lag_mean_seconds * 1000
+
+# PostgreSQL Connections
+pg_stat_database_numbackends{datname="chatdb"}
+
+# Redis Memory
+redis_memory_used_bytes
+
+# Redis Command Rate
+rate(redis_commands_processed_total[5m])
+```
+
+### **Architecture**
+
+The monitoring system uses:
+- **Prometheus Exporters**:
+  - `prometheuscommunity/postgres-exporter` for PostgreSQL metrics
+  - `oliver006/redis_exporter` for Redis metrics
+  - `@willsoto/nestjs-prometheus` for Node.js service metrics
+- **Grafana Provisioning**: Datasources and dashboards are automatically configured via YAML files in `infrastructure/grafana/provisioning/`
+- **No Manual Setup Required**: Everything works out of the box with `docker-compose up`
+
+### **Monitoring Stack Ports**
+
+| Service | Port | URL |
+|---------|------|-----|
+| Grafana Dashboard | 3003 | http://localhost:3003 |
+| Prometheus | 9090 | http://localhost:9090 |
+| PostgreSQL User Exporter | 9187 | http://localhost:9187/metrics |
+| PostgreSQL Chat Exporter | 9188 | http://localhost:9188/metrics |
+| Redis Exporter | 9121 | http://localhost:9121/metrics |
+| User Service Metrics | 3001 | http://localhost:3001/metrics |
+| Chat Service Metrics | 3002 | http://localhost:3002/metrics |
 
 ## 🛡️ Security Notes
 

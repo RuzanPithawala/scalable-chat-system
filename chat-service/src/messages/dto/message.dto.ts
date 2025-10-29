@@ -15,6 +15,10 @@ export class SendMessageDto {
 
   @IsNotEmpty()
   @IsString()
+  displayName: string;
+
+  @IsNotEmpty()
+  @IsString()
   content: string;
 }
 

@@ -56,6 +56,7 @@ describe('MessagesService', () => {
       chatId: 'test-room',
       userId: 'user-123',
       username: 'testuser',
+      displayName: 'testuser',
       content: 'Hello World',
     };
 
@@ -64,6 +65,7 @@ describe('MessagesService', () => {
       chatId: 'test-room',
       userId: 'user-123',
       username: 'testuser',
+      displayName: 'testuser',
       content: 'Hello World',
       sequence: 1,
       createdAt: new Date('2025-10-26T10:00:00Z'),
@@ -97,6 +99,7 @@ describe('MessagesService', () => {
         chatId: mockDto.chatId,
         userId: mockDto.userId,
         username: mockDto.username,
+        displayName: mockDto.displayName,
         content: mockDto.content,
         sequence: 5,
       });
@@ -177,6 +180,7 @@ describe('MessagesService', () => {
         chatId,
         userId: 'user-1',
         username: 'user1',
+      displayName: 'user1',
         content: 'First',
         sequence: 1,
         createdAt: new Date('2025-10-26T10:00:00Z'),
@@ -186,6 +190,7 @@ describe('MessagesService', () => {
         chatId,
         userId: 'user-2',
         username: 'user2',
+      displayName: 'user2',
         content: 'Second',
         sequence: 2,
         createdAt: new Date('2025-10-26T10:01:00Z'),
@@ -195,6 +200,7 @@ describe('MessagesService', () => {
         chatId,
         userId: 'user-3',
         username: 'user3',
+      displayName: 'user3',
         content: 'Third',
         sequence: 3,
         createdAt: new Date('2025-10-26T10:02:00Z'),

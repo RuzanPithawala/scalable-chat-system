@@ -234,6 +234,42 @@ services:
     depends_on:
       - nginx
 
+  # PostgreSQL Exporter for User DB
+  postgres-user-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-user-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@postgres-user:5432/userdb?sslmode=disable"
+    ports:
+      - "9187:9187"
+    depends_on:
+      postgres-user:
+        condition: service_healthy
+
+  # PostgreSQL Exporter for Chat DB
+  postgres-chat-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-chat-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@postgres-chat:5432/chatdb?sslmode=disable"
+    ports:
+      - "9188:9187"
+    depends_on:
+      postgres-chat:
+        condition: service_healthy
+
+  # Redis Exporter
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: redis-exporter
+    environment:
+      REDIS_ADDR: "redis-master:6379"
+    ports:
+      - "9121:9121"
+    depends_on:
+      redis-master:
+        condition: service_healthy
+
   # Prometheus Monitoring
   prometheus:
     image: prom/prometheus:latest
@@ -246,6 +282,10 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+    depends_on:
+      - postgres-user-exporter
+      - postgres-chat-exporter
+      - redis-exporter
 
   # Grafana
   grafana:
@@ -258,6 +298,8 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
     depends_on:
       - prometheus
 

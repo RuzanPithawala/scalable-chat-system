@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { MessagesModule } from './messages/messages.module';
 import { RedisModule } from './redis/redis.module';
 import { AuthModule } from './auth/auth.module';
@@ -14,8 +15,14 @@ import { AuthModule } from './auth/auth.module';
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_NAME || 'chatdb',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: false,
+      synchronize: true, // Auto-create tables in development
       logging: false,
+    }),
+    PrometheusModule.register({
+      path: '/metrics',
+      defaultMetrics: {
+        enabled: true,
+      },
     }),
     RedisModule,
     AuthModule,

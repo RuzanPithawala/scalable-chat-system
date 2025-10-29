@@ -25,6 +25,7 @@ export class MessagesService {
       chatId: data.chatId,
       userId: data.userId,
       username: data.username,
+      displayName: data.displayName,
       content: data.content,
       sequence,
     });

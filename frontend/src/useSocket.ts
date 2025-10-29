@@ -45,12 +45,13 @@ export const useSocket = () => {
     }
   };
 
-  const sendMessage = (chatId: string, userId: string, username: string, content: string) => {
+  const sendMessage = (chatId: string, userId: string, username: string, displayName: string, content: string) => {
     if (socketRef.current) {
       socketRef.current.emit('send-message', {
         chatId,
         userId,
         username,
+        displayName,
         content,
       });
     }

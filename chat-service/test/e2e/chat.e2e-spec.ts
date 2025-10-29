@@ -154,6 +154,7 @@ describe('Chat E2E - WebSocket Connection Test', () => {
             chatId: 'e2e-test-room',
             userId: 'sender',
             username: 'Test Sender',
+            displayName: 'Test Sender',
             content: 'E2E test message',
           });
         }, 500);

@@ -10,7 +10,9 @@ export interface Message {
   chatId: string;
   userId: string;
   username: string;
+  displayName: string;
   content: string;
+  sequence: number;
   createdAt: string;
 }
 
