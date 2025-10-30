@@ -257,6 +257,21 @@ npm run test:user:watch
 ```
 
 ### **Run E2E Tests**
+
+**Prerequisites for E2E tests:**
+1. Create environment configuration:
+```bash
+cd chat-service
+cp .env.example .env
+```
+
+2. Ensure Docker infrastructure is running:
+```bash
+cd infrastructure
+docker-compose up -d postgres-chat redis-master
+```
+
+3. Run E2E tests:
 ```bash
 npm run test:e2e
 ```
@@ -265,12 +280,6 @@ npm run test:e2e
 - WebSocket connection test
 - Join room and receive history test
 - Send and receive message test
-
-**Note**: E2E tests require PostgreSQL and Redis to be running via Docker:
-```bash
-cd infrastructure
-docker-compose up -d postgres-chat redis-master
-```
 
 ### **Run All Tests (Unit + E2E)**
 ```bash
