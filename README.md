@@ -26,206 +26,237 @@ A production-ready, horizontally scalable chat application built with microservi
 
 ## 📋 Prerequisites
 
-Before you begin, ensure you have the following installed:
+**Only Docker is required!** Everything else runs in containers.
 
-- **Node.js** (v18 or higher)
-- **npm** (v9 or higher)
-- **Docker** and **Docker Compose**
+- **Docker Desktop** (includes Docker Compose)
 - **Git**
 
-### Verify installations:
+### Verify Docker installation:
 ```bash
-node --version
-npm --version
 docker --version
 docker-compose --version
 ```
 
-## 🚀 Installation & Setup
+> **Note:** Node.js and npm are only needed if you want to run tests or services locally outside Docker.
+
+## 🚀 Quick Start (Recommended)
+
+**TL;DR:** Clone → `docker-compose up` → Done! Everything is automated.
+
+### **What You Get Automatically:**
+
+✅ **Zero Configuration** - No manual setup required
+✅ **Databases Created** - PostgreSQL databases auto-initialized
+✅ **Tables Created** - Schema generated from code automatically
+✅ **2 Service Instances** - Both services run with 2 instances for scaling demo
+✅ **Load Balancing** - NGINX distributes traffic
+✅ **Monitoring** - Pre-configured Grafana dashboards
+✅ **All Dependencies** - Everything runs in Docker containers
 
 ### **Step 1: Clone the Repository**
 ```bash
-git clone <repository-url>
+git clone https://github.com/RuzanPithawala/scalable-chat-system.git
 cd scalable-chat-system
 ```
 
-### **Step 2: Install Dependencies**
+### **Step 2: Start Everything with One Command**
 
-#### Install Chat Service Dependencies:
 ```bash
-cd chat-service
-npm install
-cd ..
+cd infrastructure
+docker-compose up --build -d
 ```
 
-#### Install User Service Dependencies:
+That's it! Wait 30-60 seconds for all services to start, then access:
+- **Chat Application**: http://localhost:3000
+- **Monitoring Dashboard**: http://localhost:3003 (admin/admin)
+
+### **What This Command Does:**
+
+<details>
+<summary>Click to see all services started</summary>
+
+- ✅ Build all Docker images
+- ✅ Start PostgreSQL databases (2 instances: userdb + chatdb)
+- ✅ Create databases automatically
+- ✅ Create all tables automatically (TypeORM auto-synchronization)
+- ✅ Start Redis (Master + Replica + Sentinel)
+- ✅ Start NGINX load balancer
+- ✅ Start User Service (2 instances)
+- ✅ Start Chat Service (2 instances)
+- ✅ Start React Frontend
+- ✅ Start Prometheus metrics collection
+- ✅ Start Grafana with pre-configured dashboards
+- ✅ Start database exporters for monitoring
+
+**Total: 16 containers**, all configured and connected automatically!
+
+</details>
+
+**Services Started:**
+- PostgreSQL (user database on port 5432, chat database on port 5433)
+- Redis Master (port 6379) + Redis Replica (port 6380) + Redis Sentinel (port 26379)
+- NGINX Load Balancer (ports 80, 3001, 3002)
+- Prometheus (port 9090) - Metrics collection
+- Grafana (port 3003) - Monitoring dashboards
+- User Service (2 instances behind load balancer)
+- Chat Service (2 instances behind load balancer)
+- Frontend (port 3000)
+
+### **Step 3: Verify Services are Running**
 ```bash
-cd user-service
-npm install
-cd ..
+docker ps
 ```
 
-#### Install Frontend Dependencies:
+You should see all containers running with status "Up" and "healthy":
+- postgres-user, postgres-chat
+- redis-master, redis-replica-1, redis-sentinel-1
+- nginx-lb
+- user-service-1, user-service-2
+- chat-service-1, chat-service-2
+- frontend
+- prometheus, grafana
+- postgres-user-exporter, postgres-chat-exporter, redis-exporter
+
+### **Step 4: Access the Application**
+
+The system is now ready to use!
+
+- **Frontend Application**: http://localhost:3000
+- **User Service API**: http://localhost/users (load balanced)
+- **Chat Service API**: http://localhost/messages (load balanced)
+- **Grafana Dashboard**: http://localhost:3003 (admin/admin)
+- **Prometheus**: http://localhost:9090
+
+**No manual database setup needed!** The databases and tables are created automatically.
+
+## 🎯 Alternative Setup: Local Development
+
+If you want to run services locally (outside Docker) for development:
+
+### **Step 1: Install Dependencies**
+
+Install dependencies for all services from the root:
 ```bash
-cd frontend
+npm run install:all
+```
+
+Or install individually:
+```bash
+# Root dependencies (for running tests from root)
 npm install
-cd ..
+
+# Service dependencies
+cd chat-service && npm install && cd ..
+cd user-service && npm install && cd ..
+cd frontend && npm install && cd ..
+```
+
+### **Step 2: Start Infrastructure Only**
+
+Start only the databases and infrastructure services:
+```bash
+cd infrastructure
+docker-compose up -d postgres-user postgres-chat redis-master nginx prometheus grafana
 ```
 
 ### **Step 3: Configure Environment Variables**
 
-#### Chat Service (.env):
-Create `chat-service/.env`:
+Create `.env` files if running services locally:
+
+**chat-service/.env:**
 ```env
-# Database
 DB_HOST=localhost
 DB_PORT=5433
 DB_USERNAME=postgres
 DB_PASSWORD=postgres
 DB_NAME=chatdb
-
-# Redis
 REDIS_HOST=localhost
 REDIS_PORT=6379
-
-# JWT
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-
-# Server
 PORT=3002
 ```
 
-#### User Service (.env):
-Create `user-service/.env`:
+**user-service/.env:**
 ```env
-# Database
 DB_HOST=localhost
 DB_PORT=5432
 DB_USERNAME=postgres
 DB_PASSWORD=postgres
 DB_NAME=userdb
-
-# JWT
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-
-# Server
 PORT=3001
 ```
 
-### **Step 4: Start Infrastructure Services**
+### **Step 4: Run Services Locally**
 
-Navigate to the infrastructure directory and start all services:
-```bash
-cd infrastructure
-docker-compose up -d
-```
+Open separate terminals for each service:
 
-This will start:
-- PostgreSQL (user database on port 5432)
-- PostgreSQL (chat database on port 5433)
-- Redis Master (port 6379)
-- Redis Replica (port 6380)
-- Redis Sentinel (port 26379)
-- NGINX Load Balancer (port 80, 3001-3002)
-- Prometheus (port 9090)
-- Grafana (port 3003)
-- User Service (2 instances)
-- Chat Service (2 instances)
-- Frontend (port 3000)
-
-### **Step 5: Verify Services are Running**
-```bash
-docker ps
-```
-
-You should see all containers running with status "Up" and "healthy".
-
-### **Step 6: Initialize Databases**
-
-#### Create Chat Database:
-```bash
-docker exec -it postgres-chat psql -U postgres -c "CREATE DATABASE chatdb;"
-```
-
-#### Create User Database:
-```bash
-docker exec -it postgres-user psql -U postgres -c "CREATE DATABASE userdb;"
-```
-
-#### Run Database Migrations:
-
-**Chat Service:**
-```bash
-cd chat-service
-npm run migration:run
-cd ..
-```
-
-**User Service:**
-```bash
-cd user-service
-npm run migration:run
-cd ..
-```
-
-## 🎯 Running the Application
-
-### **Option 1: Using Docker Compose (Recommended)**
-
-All services are already running if you completed Step 4 above.
-
-Access the application:
-- **Frontend**: http://localhost:3000
-- **API Load Balancer**: http://localhost
-- **Grafana Dashboard**: http://localhost:3003 (admin/admin)
-- **Prometheus**: http://localhost:9090
-
-### **Option 2: Running Services Locally (Development)**
-
-If you want to run services locally for development:
-
-#### Terminal 1 - Chat Service:
-```bash
-cd chat-service
-npm run start:dev
-```
-
-#### Terminal 2 - User Service:
+**Terminal 1 - User Service:**
 ```bash
 cd user-service
 npm run start:dev
 ```
 
-#### Terminal 3 - Frontend:
+**Terminal 2 - Chat Service:**
+```bash
+cd chat-service
+npm run start:dev
+```
+
+**Terminal 3 - Frontend:**
 ```bash
 cd frontend
 npm start
 ```
 
-**Note**: When running locally, make sure Docker containers for databases and Redis are still running.
+**Database tables are created automatically** when services start (TypeORM `synchronize: true`).
 
 ## 🧪 Running Tests
 
-### **Chat Service Tests**
+You can run all tests from the project root using convenient npm scripts:
 
-#### Run All Unit Tests:
+### **Run All Unit Tests (Recommended)**
 ```bash
-cd chat-service
 npm test
 ```
 
-**Expected Output**: 81 tests passing
-- Messages Service: 15 tests
-- Chat Gateway: 21 tests
-- Redis Service: 20 tests
-- Messages Controller: 25 tests
+This will run all unit tests from both chat-service and user-service in a single command.
 
-#### Run Tests with Coverage:
+**Expected Output**: 96 tests passing
+- Chat Service: 81 tests (Messages, Gateway, Redis, Controller)
+- User Service: 15 tests (Auth, Users)
+
+### **Run Service-Specific Tests**
 ```bash
-npm run test:cov
+# Chat service only
+npm run test:chat
+
+# User service only
+npm run test:user
 ```
 
-#### Run E2E Tests:
+### **Run Tests with Coverage**
+```bash
+# Coverage for all services
+npm run test:cov
+
+# Coverage for specific service
+npm run test:cov:chat
+npm run test:cov:user
+```
+
+### **Run Tests in Watch Mode**
+```bash
+# Watch mode for chat service
+npm run test:watch
+# or
+npm run test:chat:watch
+
+# Watch mode for user service
+npm run test:user:watch
+```
+
+### **Run E2E Tests**
 ```bash
 npm run test:e2e
 ```
@@ -235,29 +266,45 @@ npm run test:e2e
 - Join room and receive history test
 - Send and receive message test
 
-**Note**: E2E tests require PostgreSQL and Redis to be running.
-
-### **User Service Tests**
+**Note**: E2E tests require PostgreSQL and Redis to be running via Docker:
 ```bash
-cd user-service
-npm test
+cd infrastructure
+docker-compose up -d postgres-chat redis-master
 ```
 
-### **Running All Tests**
-
-To run all tests across all services:
+### **Run All Tests (Unit + E2E)**
 ```bash
-# Chat Service
-cd chat-service
-npm test
-npm run test:e2e
+npm run test:all
+```
 
-# User Service
-cd user-service
-npm test
+### **Test Structure**
 
-# Return to root
-cd ..
+Tests are co-located with source code in each service:
+```
+chat-service/
+├── src/
+│   ├── messages/
+│   │   ├── messages.service.ts
+│   │   ├── messages.service.spec.ts    # Unit tests
+│   │   ├── chat.gateway.ts
+│   │   └── chat.gateway.spec.ts        # Unit tests
+│   └── redis/
+│       ├── redis.service.ts
+│       └── redis.service.spec.ts       # Unit tests
+└── test/
+    └── e2e/
+        └── chat.e2e-spec.ts            # E2E tests
+
+user-service/
+└── src/
+    ├── auth/
+    │   ├── auth.service.ts
+    │   └── auth.service.spec.ts        # Unit tests
+    └── users/
+        ├── users.service.ts
+        ├── users.service.spec.ts       # Unit tests
+        ├── users.controller.ts
+        └── users.controller.spec.ts    # Unit tests
 ```
 
 ## 📊 Test Coverage Summary
@@ -305,28 +352,27 @@ npm run build         # Build for production
 npm test              # Run tests
 ```
 
-### **Database Migrations**
+### **Database Schema Management**
 
-#### Create a new migration:
-```bash
-cd chat-service
-npm run migration:generate -- src/migrations/MigrationName
-```
+The system uses TypeORM with `synchronize: true` which automatically creates and updates database tables based on your entity definitions.
 
-#### Run migrations:
-```bash
-npm run migration:run
-```
+**Development Setup:**
+- Tables are created automatically when services start
+- Schema changes are applied automatically based on entity modifications
+- No manual migrations needed
 
-#### Revert last migration:
-```bash
-npm run migration:revert
-```
+**Production Recommendation:**
+For production environments, you should:
+1. Set `synchronize: false` in both services' `app.module.ts`
+2. Use TypeORM migrations for controlled schema changes
+3. Add migration scripts to package.json (currently not configured)
+
+This ensures database schema changes are reviewed and applied in a controlled manner.
 
 ## 📁 Project Structure
 ```
 scalable-chat-system/
-├── chat-service/           # Real-time messaging service
+├── chat-service/          # Real-time messaging service
 │   ├── src/
 │   │   ├── messages/      # Message handling logic
 │   │   ├── redis/         # Redis service for pub/sub
@@ -346,10 +392,12 @@ scalable-chat-system/
 │   │   ├── services/      # API services
 │   │   └── hooks/         # Custom React hooks
 │   └── package.json
-└── infrastructure/        # Docker infrastructure
-    ├── docker-compose.yml # Service orchestration
-    ├── nginx/             # Load balancer config
-    └── prometheus/        # Monitoring config
+├── infrastructure/        # Docker infrastructure
+│   ├── docker-compose.yml # Service orchestration
+│   ├── nginx/             # Load balancer config
+│   ├── prometheus/        # Monitoring config
+│   └── grafana/           # Dashboard provisioning
+└── package.json           # Root package with aggregated scripts
 ```
 
 ## 🔍 API Endpoints
